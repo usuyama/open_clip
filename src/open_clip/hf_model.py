@@ -65,7 +65,8 @@ class MaxPooler(nn.Module):
 class ClsPooler(nn.Module):
     """CLS token pooling"""
 
-    def __init__(self, use_pooler_output=True):
+    # FIXME: use_pooler_output=False. this will break other models
+    def __init__(self, use_pooler_output=False):
         super().__init__()
         self.cls_token_position = 0
         self.use_pooler_output = use_pooler_output
@@ -118,7 +119,7 @@ class HFTextEncoder(nn.Module):
             self.transformer = AutoModel.from_config(config)
         if pooler_type is None:  # get default arch pooler
             pooler_type = (arch_dict[self.config.model_type]["pooler"])
-        
+
         self.pooler = _POOLERS[pooler_type]()
 
         d_model = getattr(self.config, arch_dict[self.config.model_type]["config_names"]["width"])
@@ -142,11 +143,10 @@ class HFTextEncoder(nn.Module):
 
         seq_len = out.last_hidden_state.shape[1]
         tokens = (
-            out.last_hidden_state[:, torch.arange(seq_len) != self.pooler.cls_token_position, :] 
-            if type(self.pooler) == ClsPooler 
+            out.last_hidden_state[:, torch.arange(seq_len) != self.pooler.cls_token_position, :]
+            if type(self.pooler) == ClsPooler
             else out.last_hidden_state
         )
-        
         if self.output_tokens:
             return projected, tokens
         return projected
